@@ -1,0 +1,17 @@
+flask_try/
+
+*.pyc
+__pycache__/
+
+instance/
+
+.pytest_chache/
+.coverage
+
+/htmlcov
+
+
+dist/
+build/
+
+*.egg-info/
