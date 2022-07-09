@@ -25,17 +25,24 @@ def register():
             error = 'Password is required.'
 
         if error is None:
-            try:
-                db.execute(
-                    "INSERT INTO user (username, password) VALUES (?, ?)",
-                    (username, generate_password_hash(password)),
-                )
-                db.commit()
-            except db.IntegrityError:
-                error = f"User {username} is already registered."
-            else:
+            # try:
+            #     db.execute(
+            #         "INSERT INTO user (username, password) VALUES (?, ?)",
+            #         (username, generate_password_hash(password)),
+            #     )
+            #     db.commit()
+            # except db.IntegrityError:
+            #     error = f"User {username} is already registered."
+            # else:
+            #     return redirect(url_for("auth.login"))
+            if not db.exists(username):
+                user_id = str(db.incrby('next_user_id',1))
+                db.set(username,user_id)
+                db.hmset('user:'+user_id,{"username":username,"password":generate_password_hash(password)})
                 return redirect(url_for("auth.login"))
-
+            else:
+                error = f"User {username} is already registered."
+            
         flash(error)
 
     return render_template('auth/register.html')
@@ -47,18 +54,24 @@ def login():
         password = request.form['password']
         db = get_db()
         error = None
-        user = db.execute(
-            'SELECT * FROM user WHERE username = ?', (username,)
-        ).fetchone()
+        # user = db.execute(
+        #     'SELECT * FROM user WHERE username = ?', (username,)
+        # ).fetchone()
+        user = db.exists(username)
+        user_id = str(db.get(username))
 
-        if user is None:
+        if not user:
             error = 'Incorrect username.'
-        elif not check_password_hash(user['password'], password):
+        elif not check_password_hash(db.hget("user:"+user_id,"password"), password):
             error = 'Incorrect password.'
 
         if error is None:
+            # session.clear()
+            # session['user_id'] = user['id']
+
             session.clear()
-            session['user_id'] = user['id']
+            session['user_id'] = user_id
+
             return redirect(url_for('index'))
 
         flash(error)
@@ -67,14 +80,16 @@ def login():
 
 @bp.before_app_request
 def load_logged_in_user():
-    user_id = session.get('user_id')
+    user_id = str(session.get('user_id'))
 
     if user_id is None:
         g.user = None
     else:
-        g.user = get_db().execute(
-            'SELECT * FROM user WHERE id = ?', (user_id,)
-        ).fetchone()
+        # g.user = get_db().execute(
+        #     'SELECT * FROM user WHERE id = ?', (user_id,)
+        # ).fetchone()
+
+        g.user = get_db().hget('user:'+user_id,"username")
 
 @bp.route('/logout')
 def logout():
