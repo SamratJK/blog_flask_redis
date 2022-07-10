@@ -3,21 +3,22 @@ services:
   web:
     build:
      context: .
+      
     ports:
     - "5000:5000"
     volumes:
     - .:/app
     depends_on:
     - redis
+  worker:
+    build:
+     context: .
+    command: rq worker --url redis://redis:6379
+    depends_on:
+    - web
+    - redis 
 
   redis:
     image: redis/redis-stack-server
-    command: redis-server --save 60 1 --loglevel warning --protected-mode no
     ports:
-    - "6379:6379"
-    volumes:
-    - redis_try_v:/data
-
-volumes:
-  redis_try_v:
-
+    - '6379:6379'
