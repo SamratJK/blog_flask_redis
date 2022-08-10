@@ -1,14 +1,21 @@
 from flask import Flask 
 import redis 
 from rq import Queue
-from get_url import count_words_at_url
+from . import get_url
 from flask import request
 
 app = Flask(__name__)
 
-r = redis.Redis(host="redis",port=6379)
+r = redis.Redis(host="127.0.0.1",port=6379)
 
 q = Queue(connection=r)
+
+def report_sucess(job, connection, result):
+    print(job)
+    print(job.get_status())
+
+def report_failure(job, connection, result):
+    print(job)
 
 
 
@@ -18,7 +25,8 @@ def index():
     # if request.method == "POST":
     #     url = request.FORM("url")
     html = " "
-    task = q.enqueue(count_words_at_url,url)
+    task = q.enqueue(get_url.count_words_at_url,url,on_success=report_sucess,on_failure=report_failure)
+    
     for job in q.jobs:
         html = f"<a href= job/{job.id}>{job.id}</a>"
 

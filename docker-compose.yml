@@ -11,8 +11,7 @@ services:
     - redis
 
   redis:
-    image: redis/redis-stack-server
-    command: redis-server --save 60 1 --loglevel warning --protected-mode no
+    image: redis:alpine
     ports:
     - "6379:6379"
     volumes:
